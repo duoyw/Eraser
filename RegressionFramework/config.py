@@ -43,8 +43,5 @@ class DbConfig:
         raise
 
 
-class JobConfig(DbConfig):
-    def __init__(self):
-        self.alias_table = {
-
-        }
+ignore_node_type = ["Hash", "Sort", "Bitmap Index Scan", "Aggregate", "Limit"]
+# ignore_node_type = []

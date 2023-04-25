@@ -206,6 +206,7 @@ class StatisticDB:
 
 class StatisticTrain:
     def __init__(self, training_set_name, db, enable_cache=True):
+        self.training_set_name = training_set_name
         self.cache = Cache("StatisticTrain_" + training_set_name, enable=enable_cache)
         self.tables = set()
 
@@ -349,6 +350,9 @@ class StatisticTrain:
         """
         values = col.split(".")
         alias = values[0]
+        if alias not in self.alias_2_table:
+            # dynamic case, test plan will can not to find table
+            return "{}.{}".format(alias, values[1])
         return "{}.{}".format(self.alias_2_table[alias], values[1])
 
     def _extract_tables(self, sqls):
@@ -620,6 +624,8 @@ class StatisticTest:
                 if col not in existed_cols:
                     return True
 
+        return False
+
     def _recurse_plan_collect_infos(self, node: PlanNode, join_keys: set, tables: set(), filter_cols: set):
         if isinstance(node, JoinPlanNode):
             node: JoinPlanNode = node
@@ -631,7 +637,6 @@ class StatisticTest:
                 col = join_key[i]
                 if col == "":
                     continue
-
                 try:
                     join_key[i] = self._alias_to_table_for_col(col)
                 except:

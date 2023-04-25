@@ -3,6 +3,7 @@ import time
 import re
 from RegressionFramework.Plan.Plan import Plan, ScanPlanNode, PlanNode, FilterPlanNode, JoinPlanNode, ProjectPlanNode
 from RegressionFramework.Plan.PlanConfig import PgNodeConfig
+from RegressionFramework.config import ignore_node_type
 from RegressionFramework.utils import is_number
 
 
@@ -23,7 +24,6 @@ class PgPlan(Plan):
             plan_node = PgOtherPlanNode(node_json, node_id)
         return plan_node
 
-
     def _to_plan_node(self, node_json, node_id, node_id_to_node):
         plan_node = self.to_node(node_json, node_id)
 
@@ -39,9 +39,46 @@ class PgPlan(Plan):
                 plan_node.children.append(child_node)
         return plan_node, cur_max_node_id
 
+    def _add_node_id(self, plan_node: PlanNode, node_id, node_id_to_node):
+        assert node_id not in node_id_to_node
+
+        cur_max_node_id = node_id
+        for child in plan_node.children:
+            cur_max_node_id = self._add_node_id(child, cur_max_node_id + 1,
+                                                node_id_to_node)
+        return cur_max_node_id
+
     @classmethod
     def get_node_type(cls, node_json):
         return PgPlanNodeMixIn.get_node_type(node_json)
+
+    def compress(self):
+        def remove(nodes, node_id):
+            res = []
+            for node in nodes:
+                if node.node_id != node_id:
+                    res.append(node)
+            return res
+
+        def recurse(parent_node: PlanNode, node: PlanNode):
+            if node.node_type in ignore_node_type and len(node.children) == 1:
+                child = node.children[0]
+                origin_size = len(parent_node.children)
+                parent_node.children = remove(parent_node.children, node.node_id)
+                assert len(parent_node.children) == origin_size - 1
+                parent_node.children.append(child)
+                recurse(parent_node, child)
+            else:
+                for child in node.children:
+                    recurse(node, child)
+
+        for child in self.root.children:
+            recurse(self.root, child)
+
+        self.node_id_to_node.clear()
+        self._add_node_id(self.root,0,self.node_id_to_node)
+
+
 
 
 class PgPlanNodeMixIn(PlanNode):

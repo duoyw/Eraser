@@ -9,6 +9,7 @@ class PlanFactory:
             return SparkPlan(plan_json, plan_id, predict)
         elif db_type == "pg":
             plan= PgPlan(plan_json, plan_id, predict)
+            plan.compress()
             return plan
         else:
             raise RuntimeError

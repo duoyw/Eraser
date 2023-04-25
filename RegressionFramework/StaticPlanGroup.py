@@ -2,6 +2,7 @@ import numpy as np
 
 from RegressionFramework.Plan.Plan import PlanNode, JoinPlanNode, Plan, FilterPlanNode
 from RegressionFramework.Plan.PlanFactory import PlanFactory
+from RegressionFramework.config import ignore_node_type
 from RegressionFramework.utils import cal_ratio
 
 
@@ -76,10 +77,12 @@ class StaticPlanGroup:
         elif node.is_join_node():
             key.append(self.get_join_key(node))
         else:
-            key.append(node_type)
+            if node_type not in ignore_node_type:
+                key.append(node_type)
 
         if len(node.children) > 0:
             children = node.children
+            # children.sort(key=lambda x: x.node_type)
             for idx, child in enumerate(children):
                 key.append(str(idx))
                 self._recurse_plan(child, key)
@@ -166,6 +169,11 @@ class Group:
     def confidence(self):
         assert len(self.plans) > 0
         return np.mean(np.array(self.ratios))
+
+    def confidence_range(self):
+        assert len(self.plans) > 0
+        ratios = np.array(self.ratios)
+        return np.min(ratios), np.mean(ratios), np.max(ratios)
 
     def draw(self):
         res = []

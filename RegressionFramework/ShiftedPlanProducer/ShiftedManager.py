@@ -3,12 +3,16 @@ import json
 from sql_metadata import Parser
 
 from RegressionFramework.Common.Cache import Cache
+from RegressionFramework.Plan.Plan import Plan
 from RegressionFramework.ShiftedPlanProducer.generateSql import SqlProduceManager
 from RegressionFramework.ShiftedPlanProducer.sqlTemplate import SqlTemplate
 from RegressionFramework.ShiftedPlanProducer.statistic import Statistic, StatisticTest
 from RegressionFramework.config import shifted_sql_budget_ratio, shifted_space_thres
-from RegressionFramework.utils import json_str_to_json_obj
+from RegressionFramework.utils import json_str_to_json_obj, cal_ratio, absolute_relative_error, \
+    absolute_relative_error_with_limit
+from plan2latency import get_hyperqo_result
 from plan2score import get_perfguard_result
+from plans2best_plan import get_hyperqo_best_plan
 from test_script.utils import run_query
 
 
@@ -16,6 +20,7 @@ class ShiftedManager:
     def __init__(self, db: str, training_set_name, model, algo):
         self.model = model
         self.db = db
+        self.training_set_name = training_set_name
         self.statistic = Statistic(db, training_set_name)
         self.sql_template = SqlTemplate(self.statistic, db)
         self.sql_producer = SqlProduceManager(self.statistic, self.sql_template, db)
@@ -29,10 +34,15 @@ class ShiftedManager:
         self.join_keys_2_sqls = None
         self.filter_table_2_col_2_range_sqls = None
 
-        # { sql:[],...}
+        # { sql:[[first plans],[second plans ]],...}, only use first plans
         self.sql_2_plans = {}
 
         self.statistic_test = None
+
+        self.delete_structure_enable = None
+        self.delete_join_enable = None
+        self.delete_table_enable = None
+        self.delete_filter_enable = None
 
     def build(self, plans, sqls):
         self._generate_sqls(plans, sqls)
@@ -44,20 +54,34 @@ class ShiftedManager:
         self._generate_plans(sqls)
 
         struct_accuracy, join_key_accuracy, table_accuracy, filter_accuracy = self._evaluation()
-        structure_enable = True if struct_accuracy < shifted_space_thres else False
-        join_enable = True if join_key_accuracy < shifted_space_thres else False
-        table_enable = True if table_accuracy < shifted_space_thres else False
-        filter_enable = True if filter_accuracy < shifted_space_thres else False
+        self.delete_structure_enable = True if struct_accuracy < shifted_space_thres else False
+        self.delete_join_enable = True if join_key_accuracy < shifted_space_thres else False
+        self.delete_table_enable = True if table_accuracy < shifted_space_thres else False
+        self.delete_filter_enable = True if filter_accuracy < shifted_space_thres else False
 
-        self.statistic_test = StatisticTest(self.statistic.statistic_train, structure_enable, join_enable, table_enable,
-                                            filter_enable)
+        self.statistic_test = StatisticTest(self.statistic.statistic_train, self.delete_structure_enable,
+                                            self.delete_join_enable,
+                                            self.delete_table_enable,
+                                            self.delete_filter_enable)
+
+        # self.write_accuracy(struct_accuracy, join_key_accuracy, table_accuracy, filter_accuracy)
 
         # end
         self.sql_2_plans_cache.save([self.sql_2_plans])
         print("")
 
+    def write_accuracy(self, struct_accuracy, join_key_accuracy, table_accuracy, filter_accuracy):
+        with open("./unexpected_plan_accuracy.txt", "a") as f:
+            line = "train_file is {}, structure is {}, join is {}, table is {}, filter is {} \n".format(
+                self.training_set_name, struct_accuracy, join_key_accuracy, table_accuracy, filter_accuracy)
+            f.write(line)
+        exit()
+
     def is_filter(self, plan):
         return self.statistic_test.is_shifted(plan)
+
+    def get_subspace_result(self):
+        return self.delete_structure_enable, self.delete_join_enable, self.delete_table_enable, self.delete_filter_enable
 
     def _evaluation(self):
         if self.space_evaluation_cache.exist():
@@ -183,6 +207,26 @@ class ShiftedManager:
                 for item in range_sqls:
                     sqls += item[2]
         return sqls
+
+
+class HyperqoShiftedManager(ShiftedManager):
+    def _evaluate_model(self, sqls):
+        total_count = 0
+        correct_count = 0
+
+        ratios = []
+
+        for sql in sqls:
+            plans = self.sql_2_plans[sql]
+            if plans[0] is not None:
+                predicts = get_hyperqo_result(plans, sql, self.model)
+                if predicts is None:
+                    continue
+                for i, p in enumerate(plans):
+                    plan = json_str_to_json_obj(p)
+                    ratios.append(absolute_relative_error_with_limit(predicts[i], plan["Execution Time"]))
+
+        return float(correct_count) / total_count if total_count > 0 else 0.0, total_count
 
 
 class LeroShiftedManager(ShiftedManager):

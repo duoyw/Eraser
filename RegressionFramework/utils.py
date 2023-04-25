@@ -26,6 +26,18 @@ def cal_ratio(predict, actual):
     return max(0.0, min(predict / actual, 2.0))
 
 
+def absolute_relative_error(predict, actual):
+    return abs((predict - actual) / actual)
+
+
+def absolute_relative_error_with_limit(predict, actual):
+    return min(max(0.0, absolute_relative_error(predict, actual)), 2.0)
+
+
+def relative_error(predict, actual):
+    return (predict - actual) / float(actual)
+
+
 def is_number(value):
     try:
         float(value)
@@ -83,3 +95,7 @@ def join(separate: str, target: list):
         res.append(str(t))
 
     return separate.join(res)
+
+
+def to_rgb_tuple(color: str):
+    return tuple([int(c) / 255 for c in color[4:-1].split(",")])

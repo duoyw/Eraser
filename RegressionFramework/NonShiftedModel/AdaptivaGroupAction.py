@@ -1,5 +1,6 @@
 from bisect import bisect_left
 
+from RegressionFramework.Common.dotDrawer import PlanDotDrawer
 from RegressionFramework.NonShiftedModel.AdaptivaGroupTree import TreeNode
 from RegressionFramework.NonShiftedModel.PlansManeger import PlansManager
 from RegressionFramework.Plan.Plan import FilterPlanNode, JoinPlanNode, PlanNode
@@ -33,16 +34,19 @@ class Action:
         right_group_plans = []
         plans = tree_node.plans
         for plan in plans:
-            plan_node = self.plans_manager.get_node(plan.plan_id, self.plan_node_id)
-            if self.is_left_group(plan_node):
-                left_group_plans.append(plan)
-            else:
-                right_group_plans.append(plan)
+            try:
+                plan_node = self.plans_manager.get_node(plan.plan_id, self.plan_node_id)
+                if self.is_left_group(plan_node):
+                    left_group_plans.append(plan)
+                else:
+                    right_group_plans.append(plan)
+            except:
+                pass
         return TreeNode(left_group_plans), TreeNode(right_group_plans)
 
-    def score_if_split(self, tree_node: TreeNode):
-        left_tree_node, right_tree_node = self._split_no_add_action(tree_node)
-        return self._score(left_tree_node, right_tree_node),left_tree_node.size(),right_tree_node.size()
+    def fake_split(self, tree_node: TreeNode):
+        return  self._split_no_add_action(tree_node)
+
 
     @classmethod
     def update_actions(cls, plan_manager: PlansManager, root: TreeNode):
@@ -168,14 +172,6 @@ class Action:
                 node_id_to_value_to_count[node_id][value][value2][
                     value3] + 1
 
-    @classmethod
-    def _score(cls, tree_node1: TreeNode, tree_node2: TreeNode):
-        score = 0
-        if not tree_node1.empty():
-            score += tree_node1.variance()
-        if not tree_node2.empty():
-            score += tree_node2.variance()
-        return score
 
     def add_actions_left(self, target: TreeNode, origin: TreeNode, ignore_actions=None, ignore_action_types=None):
         if target.empty():
