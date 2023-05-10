@@ -12,4 +12,3 @@ All Eraser code is saved in directory "RegressionFramework"
 You can reproduce the experiment result by stating the unit test in file "lero_test", then it will leverage the data to build Eraser and protect the lero's model from performance regression
 
 You can modify the related parameters in the file "RegressionFramework.config" for improving eraser's performance.
->>>>>>> master
