@@ -1,0 +1,1 @@
+def findDecision(obj): #obj[0]: joinType_0, obj[1]: joinKey_1, obj[2]: joinKey_2, obj[3]: scanType_3, obj[4]: tbName_4, obj[5]: filterCol_5, obj[6]: joinType_6, obj[7]: joinKey_7, obj[8]: joinKey_8, obj[9]: scanType_9, obj[10]: tbName_10, obj[11]: filterCol_11, obj[12]: scanType_12, obj[13]: tbName_13, obj[14]: filterCol_14
