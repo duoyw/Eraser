@@ -6,24 +6,28 @@ from config import *
 import fcntl
 import psycopg2
 
+
 # 加密
 def encode_str(s):
     md5 = hashlib.md5()
     md5.update(s.encode('utf-8'))
     return md5.hexdigest()
-        
-def run_query(q, run_args):
+
+
+def run_query(q, run_args, db=None, time_out=None):
     # 1 连接数据库；2 打开lero开关；3输出执行计划
     start = time()
-    # CONNECTION_STR = "dbname=" + DB + " user=" + USER + " password=" + PASSWORD + " host=localhost port=" + str(PORT)
-    conn = psycopg2.connect(CONNECTION_STR)
+    if db is not None:
+        conn_str = "dbname={}  user={} password={} host={} port={}".format(db, USER, PASSWORD, HOST, PORT)
+        conn = psycopg2.connect(conn_str)
+    else:
+        conn = psycopg2.connect(CONNECTION_STR)
     conn.set_client_encoding('UTF8')
     result = None
     ## 方便debug
     cur = conn.cursor()
     cur.execute("select pg_backend_pid();")
     pid = cur.fetchall()
-    print(pid)
     try:
         cur = conn.cursor()
         ## run_args:["SET enable_lero TO True"]
@@ -31,21 +35,25 @@ def run_query(q, run_args):
             for arg in run_args:
                 # SET enable_lero TO True
                 cur.execute(arg)
-        # TIMEOUT = 30000000       
-        cur.execute("SET statement_timeout TO " + str(TIMEOUT))
+        # TIMEOUT = 30000000
+        if time_out is None:
+            cur.execute("SET statement_timeout TO " + str(TIMEOUT))
+        else:
+            cur.execute("SET statement_timeout TO " + str(time_out))
         # EXPLAIN的作用是输出pg的执行计划
         # q = "EXPLAIN (COSTS FALSE, FORMAT JSON, SUMMARY) " + sql
         cur.execute(q)
         result = cur.fetchall()
     finally:
-        
+
         conn.close()
     # except Exception as e:
     #     conn.close()
     #     raise e
-    
+
     stop = time()
     return stop - start, result
+
 
 def get_history(encoded_q_str, plan_str, encoded_plan_str):
     # LOG_PATH = "./log/query_latency"
@@ -54,7 +62,7 @@ def get_history(encoded_q_str, plan_str, encoded_plan_str):
     history_path = os.path.join(LOG_PATH, encoded_q_str, encoded_plan_str)
     if not os.path.exists(history_path):
         return None
-    
+
     # print("visit histroy path: ", history_path)
     with open(os.path.join(history_path, "check_plan"), "r") as f:
         # 比较当前lero生成的计划和文件中的历史计划，看是否存在hash冲突
@@ -64,11 +72,12 @@ def get_history(encoded_q_str, plan_str, encoded_plan_str):
             print("given", plan_str)
             print("wanted", history_plan_str)
             return None
-    
+
     # print("get the history file:", history_path)
     with open(os.path.join(history_path, "plan"), "r") as f:
         return f.read().strip()
-    
+
+
 def save_history(q, encoded_q_str, plan_str, encoded_plan_str, latency_str):
     history_q_path = os.path.join(LOG_PATH, encoded_q_str)
     # 写入原sql语句
@@ -84,7 +93,7 @@ def save_history(q, encoded_q_str, plan_str, encoded_plan_str, latency_str):
                 print("given", q)
                 print("wanted", history_q)
                 return
-    
+
     # 写入plan_str和latency_str
     history_plan_path = os.path.join(history_q_path, encoded_plan_str)
     if os.path.exists(history_plan_path):
@@ -92,15 +101,17 @@ def save_history(q, encoded_q_str, plan_str, encoded_plan_str, latency_str):
         return
     else:
         os.makedirs(history_plan_path)
-        
+
     with open(os.path.join(history_plan_path, "check_plan"), "w") as f:
         f.write(plan_str)
     with open(os.path.join(history_plan_path, "plan"), "w") as f:
         f.write(latency_str)
     print("save history:", history_plan_path)
 
-def explain_query(q, run_args, contains_cost = False):
-    q = "EXPLAIN (COSTS " + ("" if contains_cost else "False") + ", FORMAT JSON, SUMMARY) " + (q.strip().replace("\n", " ").replace("\t", " "))
+
+def explain_query(q, run_args, contains_cost=False):
+    q = "EXPLAIN (COSTS " + ("" if contains_cost else "False") + ", FORMAT JSON, SUMMARY) " + (
+        q.strip().replace("\n", " ").replace("\t", " "))
     _, plan_json = run_query(q, run_args)
     plan_json = plan_json[0][0]
     if len(plan_json) == 2:
@@ -108,9 +119,8 @@ def explain_query(q, run_args, contains_cost = False):
         plan_json = [plan_json[1]]
     return plan_json
 
+
 def create_training_file(training_data_file, *latency_files):
-
-
     if (os.path.exists(training_data_file)):
         os.remove(training_data_file)
     # 读取latency_files中的每一行
@@ -143,8 +153,10 @@ def create_training_file(training_data_file, *latency_files):
     with open(training_data_file, 'w') as f2:
         f2.write(str)
 
+
 ## 将查询变成计划存下来
-def do_run_query(sql, query_name, run_args, latency_file, write_latency_file = True, manager_dict = None, manager_lock = None):
+def do_run_query(sql, query_name, run_args, latency_file, write_latency_file=True, manager_dict=None,
+                 manager_lock=None):
     sql = sql.strip().replace("\n", " ").replace("\t", " ")
     # 1. run query with pg hint
     # 获取pg的执行计划
@@ -206,13 +218,14 @@ def do_run_query(sql, query_name, run_args, latency_file, write_latency_file = T
                 # TIMING：在输出中包含实际启动时间和每个节点花费的时间，这个参数一般在ANALYZE也启用的时候使用，缺省为TRUE
                 # FORMAT：声明输出格式，，缺省为TEXT
                 # 实际执行计划，获取函数执行时间和latency_json
-                _, latency_json = run_query("EXPLAIN (ANALYZE, TIMING, VERBOSE, COSTS, SUMMARY, FORMAT JSON) " + sql, run_args)
+                _, latency_json = run_query("EXPLAIN (ANALYZE, TIMING, VERBOSE, COSTS, SUMMARY, FORMAT JSON) " + sql,
+                                            run_args)
                 latency_json = latency_json[0][0]
                 if len(latency_json) == 2:
                     # remove bao's prediction
                     latency_json = [latency_json[1]]
             except Exception as e:
-                if  time() - run_start > (TIMEOUT / 1000 * 0.9):
+                if time() - run_start > (TIMEOUT / 1000 * 0.9):
                     # Execution timeout
                     _, latency_json = run_query("EXPLAIN (VERBOSE, COSTS, FORMAT JSON, SUMMARY) " + sql, run_args)
                     latency_json = latency_json[0][0]

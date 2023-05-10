@@ -16,12 +16,14 @@ OP_TYPES = [UNKNOWN_OP_TYPE, "Hash", "Materialize", "Sort", "Aggregate", "Increm
 
 
 def json_str_to_json_obj(json_data):
-    json_obj = json.loads(json_data)
-    if type(json_obj) == list:
-        assert len(json_obj) == 1
-        json_obj = json_obj[0]
-        assert type(json_obj) == dict
-    return json_obj
+    if isinstance(json_data, str):
+        json_obj = json.loads(json_data)
+        if type(json_obj) == list:
+            assert len(json_obj) == 1
+            json_obj = json_obj[0]
+            assert type(json_obj) == dict
+        return json_obj
+    return json_data
 
 """
 X1和对应X2都来自于同一个查询的不同计划

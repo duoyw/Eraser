@@ -23,11 +23,14 @@ device = torch.device("cuda:0" if CUDA else "cpu")
 def _nn_path(base):
     return os.path.join(base, "nn_weights")
 
+
 def _feature_generator_path(base):
     return os.path.join(base, "feature_generator")
 
+
 def _input_feature_dim_path(base):
     return os.path.join(base, "input_feature_dim")
+
 
 def collate_fn(x):
     trees = []
@@ -39,6 +42,7 @@ def collate_fn(x):
 
     targets = torch.tensor(targets)
     return trees, targets
+
 
 def collate_pairwise_fn(x):
     trees1 = []
@@ -55,8 +59,10 @@ def collate_pairwise_fn(x):
 def transformer(x: SampleEntity):
     return x.get_feature()
 
+
 def left_child(x: SampleEntity):
     return x.get_left()
+
 
 def right_child(x: SampleEntity):
     return x.get_right()
@@ -210,7 +216,7 @@ class LeroModel():
             x = [x]
         tree = None
         if CUDA:
-            #tree = self._net.module.build_trees(x)
+            # tree = self._net.module.build_trees(x)
             tree = self._net.build_trees(x)
         else:
             tree = self._net.build_trees(x)
@@ -222,6 +228,10 @@ class LeroModel():
 class LeroModelPairWise(LeroModel):
     def __init__(self, feature_generator) -> None:
         super().__init__(feature_generator)
+
+    def to_feature(self, targets):
+        local_features, _ = self._feature_generator.transform(targets)
+        return local_features
 
     def fit(self, X1, X2, Y1, Y2, pre_training=False):
         assert len(X1) == len(X2) and len(Y1) == len(Y2) and len(X1) == len(Y1)
@@ -309,4 +319,3 @@ class LeroModelPairWise(LeroModel):
 
             print("Epoch", epoch, "training loss:", loss_accum)
         print("training time:", time() - start_time, "batch size:", batch_size)
-        

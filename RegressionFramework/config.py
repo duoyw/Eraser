@@ -1,47 +1,30 @@
 from RegressionFramework.Plan.PlanConfig import PgNodeConfig
 
-base_path = "/mnt/yuchu.yc/Ai4Db/"
-data_base_path = "/mnt/yuchu.yc/Ai4Db/data/"
-cache_base_path = "/mnt/yuchu.yc/Ai4Db/cache/"
-model_base_path = "/mnt/yuchu.yc/Ai4Db/model/"
+# data filepath
+base_path = "./"
+data_base_path = "./data/"
+cache_base_path = data_base_path + "cache/"
+model_base_path = "./model/"
+
+# configure need to be adjusted by validation set
+# we adjust alpha and beta to control lambda
+alpha = 0.6
+# we will show the result of each beta, list format is often used for validation set
+betas = [0.0, 0.1, 0.3, 0.5, 0.6, 0.7, 0.8, 0.9]
+min_leaf_ele_count = 5
+# the decision if segment model have not a corresponding structure for the incoming plan,
+# -1 mean to refuse risk model, but 1 mean to trust risk model
+decision_for_new_structure = -1
+
+
+# configure not to change
 db_node_config = PgNodeConfig
-
-
-class GroupEnable:
-    struct_enable = True
-    scan_type_enable = False
-    table_name_enable = False
-    join_type_enable = False
-    join_key_enable = False
-    filter_enable = False
-    filter_col_enable = False
-    filter_op_enable = False
-    filter_value_enable = False
-
-
 max_col_limit = 20
-
-# shifted plan parameter
 shifted_sql_budget_ratio = 0.5
-# join order, candidate join order, join key filter condition
 overlap_thres = 0.99
 max_join_keys_size = 300
 min_join_keys_size = 200
-
-# shifted join key production
 sqls_for_each_join_key = 3
-
-# shifted filter value
 histogram_bin_size = 10
 sqls_for_each_bin = 1
-
-shifted_space_thres = 0.6
-
-
-class DbConfig:
-    def get_tables_counts(self):
-        raise
-
-
 ignore_node_type = ["Hash", "Sort", "Bitmap Index Scan", "Aggregate", "Limit"]
-# ignore_node_type = []

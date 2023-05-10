@@ -2,7 +2,7 @@ import time
 
 from RegressionFramework.Plan.Plan import PlanNode, FilterPlanNode, JoinPlanNode, ScanPlanNode, ProjectPlanNode, Plan
 from RegressionFramework.Plan.PlanConfig import SparkNodeConfig
-from RegressionFramework.utils import is_number
+from RegressionFramework.Common.utils import is_number
 
 
 class SparkPlanNodeMixIn(PlanNode):

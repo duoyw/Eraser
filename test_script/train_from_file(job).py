@@ -256,7 +256,6 @@ class LeroHelper():
 
 def create_training_file(qid_list,training_data_file, *latency_files):
 
-
     if (os.path.exists(training_data_file)):
         os.remove(training_data_file)
     # 读取latency_files中的每一行

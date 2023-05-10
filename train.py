@@ -23,11 +23,14 @@ def _load_pairwise_plans(path):
             X2 += x2
     return X1, X2
 
+
 """
 eg:candidates = [p0,p1,p2]
 X1 = [p0,p0,p1]
 X2 = [p1,p2,p2]
 """
+
+
 def get_training_pair(candidates):
     assert len(candidates) >= 2
     X1, X2 = [], []
@@ -70,17 +73,20 @@ def compute_rank_score(path, pretrain=False, rank_score_type=0):
                 elif rank_score_type == 2:
                     # 3. e^x
                     print("e^X")
-                    Y.append(float(math.exp(i+1)))
+                    Y.append(float(math.exp(i + 1)))
                 elif rank_score_type == 3:
                     # 3. x^1
                     print("X^1")
                     Y.append(float((i + 1)))
     return X, Y
 
+
 """
 X1和对应X2都来自于同一个查询的不同计划
 X1 = [p0,p0,p1,...],X2 = [p1,p2,p2,...]
 """
+
+
 def training_pairwise(tuning_model_path, model_name, training_data_file, pretrain=False):
     X1, X2 = _load_pairwise_plans(training_data_file)
 
@@ -169,6 +175,31 @@ def training_pointwise(tuning_model_path, model_name, training_data_file):
     lero_model.save(model_name)
 
 
+def train(training_data, dataset_name=None, training_type=0, model_name=None, pretrain_model_name=None,
+          rank_score_training_type=0):
+    if training_type == 0:
+        print("training_pointwise")
+        training_pointwise(pretrain_model_name, model_name, training_data)
+    elif training_type == 1:
+        print("training_pairwise")
+        training_pairwise(pretrain_model_name, model_name,
+                          training_data, False)
+    elif training_type == 2:
+        print("training_with_rank_score")
+        training_with_rank_score(
+            pretrain_model_name, model_name, training_data, False, rank_score_training_type)
+    elif training_type == 3:
+        print("pre-training_pairwise")
+        training_pairwise(pretrain_model_name, model_name,
+                          training_data, True)
+    elif training_type == 4:
+        print("pre-training_with_rank_score")
+        training_with_rank_score(
+            pretrain_model_name, model_name, training_data, True, rank_score_training_type)
+    else:
+        raise Exception()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Model training helper")
     parser.add_argument("--training_data",
@@ -206,24 +237,4 @@ if __name__ == "__main__":
         rank_score_training_type = args.rank_score_training_type
     print("rank_score_training_type:", rank_score_training_type)
 
-    if training_type == 0:
-        print("training_pointwise")
-        training_pointwise(pretrain_model_name, model_name, training_data)
-    elif training_type == 1:
-        print("training_pairwise")
-        training_pairwise(pretrain_model_name, model_name,
-                          training_data, False)
-    elif training_type == 2:
-        print("training_with_rank_score")
-        training_with_rank_score(
-            pretrain_model_name, model_name, training_data, False, rank_score_training_type)
-    elif training_type == 3:
-        print("pre-training_pairwise")
-        training_pairwise(pretrain_model_name, model_name,
-                          training_data, True)
-    elif training_type == 4:
-        print("pre-training_with_rank_score")
-        training_with_rank_score(
-            pretrain_model_name, model_name, training_data, True, rank_score_training_type)
-    else:
-        raise Exception()
+    train(training_data, None, training_type, model_name, pretrain_model_name, rank_score_training_type)

@@ -151,6 +151,7 @@ class Plan:
         self.plan_id = plan_id
         self.plan_id = self.plan_id if self._get_id() is None else self._get_id()
         self.metric = self._get_metric()
+        self.structure=None
 
         self.node_id_to_node = {}
         self.root = self._to_plan_node(plan_json["Plan"], 0, self.node_id_to_node)[0]

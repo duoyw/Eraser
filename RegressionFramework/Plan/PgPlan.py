@@ -1,10 +1,9 @@
 import queue
-import time
 import re
 from RegressionFramework.Plan.Plan import Plan, ScanPlanNode, PlanNode, FilterPlanNode, JoinPlanNode, ProjectPlanNode
 from RegressionFramework.Plan.PlanConfig import PgNodeConfig
 from RegressionFramework.config import ignore_node_type
-from RegressionFramework.utils import is_number
+from RegressionFramework.Common.utils import is_number
 
 
 class PgPlan(Plan):

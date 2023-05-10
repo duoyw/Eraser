@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 class BinaryTreeConv(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(BinaryTreeConv, self).__init__()
@@ -25,6 +26,7 @@ class BinaryTreeConv(nn.Module):
         results = torch.cat((zero_vec, results), dim=2)
         return (results, orig_idxes)
 
+
 class TreeActivation(nn.Module):
     def __init__(self, activation):
         super(TreeActivation, self).__init__()
@@ -33,6 +35,7 @@ class TreeActivation(nn.Module):
     def forward(self, x):
         return (self.activation(x[0]), x[1])
 
+
 class TreeLayerNorm(nn.Module):
     def forward(self, x):
         data, idxes = x
@@ -40,8 +43,9 @@ class TreeLayerNorm(nn.Module):
         std = torch.std(data, dim=(1, 2)).unsqueeze(1).unsqueeze(1)
         normd = (data - mean) / (std + 0.00001)
         return (normd, idxes)
-    
+
+
 class DynamicPooling(nn.Module):
     def forward(self, x):
-        return torch.max(x[0], dim=2).values
-    
+        res = torch.max(x[0], dim=2).values
+        return res

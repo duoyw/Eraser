@@ -10,7 +10,7 @@ def get_sort_sql(path):
             line = line.replace("FROM","from")
             line = line.replace("WHERE","where")
 
-            key = re.match(".*(from|FROM)(.*)(where|WHERE).*",line).group(2)
+            key = re.match(".*(from|FROM)(.*)(where|WHERE).*",line)._ood_model(2)
             tables = key.split(",")
             tables = [table.strip(" ") for table in tables]
             
@@ -31,7 +31,7 @@ def get_sort_table_sql(path):
             line = line.replace("FROM","from")
             line = line.replace("WHERE","where")
 
-            key = re.match(".*(from|FROM)(.*)(where|WHERE).*",line).group(2)
+            key = re.match(".*(from|FROM)(.*)(where|WHERE).*",line)._ood_model(2)
             tables = key.split(",")
             tables = [table.strip(" ") for table in tables]
             

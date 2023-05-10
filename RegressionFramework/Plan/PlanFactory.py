@@ -9,7 +9,8 @@ class PlanFactory:
             return SparkPlan(plan_json, plan_id, predict)
         elif db_type == "pg":
             plan= PgPlan(plan_json, plan_id, predict)
-            plan.compress()
+            # 注意，压缩会导致node_id_to_node 为空，需要修复这个bug
+            # plan.compress()
             return plan
         else:
             raise RuntimeError
